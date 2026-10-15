@@ -67,3 +67,27 @@ def analyze_lead(message: str) -> LeadAnalysis:
 
 def analysis_dict(message: str) -> dict:
     return asdict(analyze_lead(message))
+
+
+def draft_response(name: str, message: str) -> str:
+    analysis = analyze_lead(message)
+
+    if analysis.intent == "quote_request":
+        return (
+            f"Hi {name}, thanks for reaching out! "
+            "We'd be happy to help with your request. "
+            "Could you send us a few more details about the job "
+            "so we can prepare an estimate?"
+        )
+
+    if analysis.intent == "customer_issue":
+        return (
+            f"Hi {name}, thanks for letting us know. "
+            "I've flagged this for the business owner to review. "
+            "Someone will follow up with you directly."
+        )
+
+    return (
+        f"Hi {name}, thanks for reaching out! "
+        "We've received your message and will follow up shortly."
+    )
