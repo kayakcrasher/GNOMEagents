@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+
 from pydantic import BaseModel, Field
 
 
@@ -11,6 +12,10 @@ class LeadCreate(BaseModel):
 class Lead(LeadCreate):
     id: int
     status: str
+    intent: str
+    priority: str
+    confidence: float
+    recommended_action: str
     created_at: datetime
 
 
