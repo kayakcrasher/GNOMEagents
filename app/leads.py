@@ -21,3 +21,18 @@ class Lead(LeadCreate):
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+class AgentDecisionResult(BaseModel):
+    action: str
+    reason: str
+    requires_approval: bool
+    follow_up: bool
+
+
+class LeadkeeperResult(BaseModel):
+    lead: Lead
+    draft_response: str
+    knowledge_answer: str | None
+    evidence: list[dict]
+    decision: AgentDecisionResult

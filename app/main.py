@@ -43,3 +43,23 @@ def create_lead(lead: LeadCreate):
 @app.get("/leads", response_model=list[Lead])
 def list_leads():
     return get_leads()
+
+
+from app.leadkeeper import process_lead
+from app.leads import LeadkeeperResult
+
+
+@app.post(
+    "/leadkeeper/process",
+    response_model=LeadkeeperResult,
+)
+def leadkeeper_process(
+    lead: LeadCreate,
+    collection_id: str = "default",
+):
+    """Process a lead using GNOMEdata knowledge."""
+
+    return process_lead(
+        lead,
+        collection_id=collection_id,
+    )

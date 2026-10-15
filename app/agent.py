@@ -91,3 +91,28 @@ def draft_response(name: str, message: str) -> str:
         f"Hi {name}, thanks for reaching out! "
         "We've received your message and will follow up shortly."
     )
+
+
+def draft_grounded_response(
+    name: str,
+    message: str,
+    knowledge_answer: str | None,
+) -> str:
+    """Draft a reply using verified GNOMEdata knowledge."""
+
+    analysis = analyze_lead(message)
+
+    if analysis.intent == "customer_issue":
+        return (
+            f"Hi {name}, thanks for letting us know. "
+            "I've flagged this for the business owner to review. "
+            "Someone will follow up with you directly."
+        )
+
+    if knowledge_answer:
+        return (
+            f"Hi {name}, thanks for reaching out! "
+            f"{knowledge_answer}"
+        )
+
+    return draft_response(name, message)
