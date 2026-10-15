@@ -1,0 +1,88 @@
+import sqlite3
+from pathlib import Path
+
+from app.leads import Lead, LeadCreate, utc_now
+
+
+DB_PATH = Path("data/gnome_agents.db")
+
+
+def connect() -> sqlite3.Connection:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+
+    return connection
+
+
+def initialize_database() -> None:
+    with connect() as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS leads (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                contact TEXT NOT NULL,
+                message TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+
+
+def add_lead(lead: LeadCreate) -> Lead:
+    created_at = utc_now()
+    status = "new"
+
+    with connect() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO leads (
+                name,
+                contact,
+                message,
+                status,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                lead.name,
+                lead.contact,
+                lead.message,
+                status,
+                created_at.isoformat(),
+            ),
+        )
+
+        lead_id = cursor.lastrowid
+
+    return Lead(
+        id=lead_id,
+        name=lead.name,
+        contact=lead.contact,
+        message=lead.message,
+        status=status,
+        created_at=created_at,
+    )
+
+
+def get_leads() -> list[Lead]:
+    with connect() as connection:
+        rows = connection.execute(
+            "SELECT * FROM leads ORDER BY id DESC"
+        ).fetchall()
+
+    return [
+        Lead(
+            id=row["id"],
+            name=row["name"],
+            contact=row["contact"],
+            message=row["message"],
+            status=row["status"],
+            created_at=row["created_at"],
+        )
+        for row in rows
+    ]
