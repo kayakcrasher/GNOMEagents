@@ -35,6 +35,12 @@ def submit_workflow_approval(worker, job, workflow):
         json={
             "action": "lead:review",
             "title": "Leadkeeper workflow review",
+            "idempotency_key": (
+                f"lead:process:job:{job['id']}"
+            ),
+            "idempotency_key": (
+                f"lead:process:job:{job['id']}"
+            ),
             "payload": {
                 "job_id": job["id"],
                 "analysis": result.get("analysis"),
