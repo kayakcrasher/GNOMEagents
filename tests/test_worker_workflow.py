@@ -25,6 +25,12 @@ def make_worker(kind, message):
                 }]
             })
 
+        if request.url.path == "/api/approvals/proposals":
+            return httpx.Response(201, json={
+                "id": 99,
+                "status": "pending",
+            })
+
         if request.url.path.endswith("/claim"):
             return httpx.Response(200, json={})
 

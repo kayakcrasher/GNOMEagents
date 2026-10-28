@@ -5,6 +5,7 @@ import httpx
 from app.agent_planner import AgentPlanner
 from app.agent_memory import AgentMemory
 from app.workflow_dispatch import dispatch_workflow
+from app.workflow_approvals import submit_workflow_approval
 
 
 class WorkstationWorker:
@@ -77,6 +78,9 @@ class WorkstationWorker:
                         "Workflow did not reach approval"
                     )
 
+                proposal_id = submit_workflow_approval(
+                    self, job, workflow
+                )
                 analysis = workflow["result"]
             else:
                 state = AgentPlanner().execute(
@@ -99,6 +103,11 @@ class WorkstationWorker:
                         "worker": "Leadkeeper",
                         "analysis": analysis,
                         "requires_human_review": True,
+                        "proposal_id": (
+                            proposal_id
+                            if job["kind"] == "lead:process"
+                            else None
+                        ),
                     }
                 },
             )
