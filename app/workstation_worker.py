@@ -4,6 +4,7 @@ import httpx
 
 from app.agent_planner import AgentPlanner
 from app.agent_memory import AgentMemory
+from app.workflow_dispatch import dispatch_workflow
 
 
 class WorkstationWorker:
@@ -39,7 +40,10 @@ class WorkstationWorker:
             if job["status"] != "queued":
                 continue
 
-            if job["kind"] != "lead:analyze":
+            if job["kind"] not in {
+                "lead:analyze",
+                "lead:process",
+            }:
                 continue
 
             message = job["instructions"].get("message")
@@ -62,15 +66,30 @@ class WorkstationWorker:
                     continue
                 raise
 
-            state = AgentPlanner().execute(
-                "Analyze assigned lead",
-                {"message": message},
-            )
-
-            if state.status != "completed":
-                raise RuntimeError(
-                    "Agent execution failed"
+            if job["kind"] == "lead:process":
+                workflow = dispatch_workflow(
+                    "lead:process",
+                    {"message": message},
                 )
+
+                if workflow["status"] != "awaiting_approval":
+                    raise RuntimeError(
+                        "Workflow did not reach approval"
+                    )
+
+                analysis = workflow["result"]
+            else:
+                state = AgentPlanner().execute(
+                    "Analyze assigned lead",
+                    {"message": message},
+                )
+
+                if state.status != "completed":
+                    raise RuntimeError(
+                        "Agent execution failed"
+                    )
+
+                analysis = state.result
 
             self.request(
                 "POST",
@@ -78,7 +97,7 @@ class WorkstationWorker:
                 json={
                     "result": {
                         "worker": "Leadkeeper",
-                        "analysis": state.result,
+                        "analysis": analysis,
                         "requires_human_review": True,
                     }
                 },
@@ -94,7 +113,7 @@ class WorkstationWorker:
                         status="completed",
                         result={
                             "job_id": job_id,
-                            "analysis": state.result,
+                            "analysis": analysis,
                         },
                     )
                 except Exception:
@@ -105,7 +124,7 @@ class WorkstationWorker:
             return {
                 "job_id": job_id,
                 "status": "completed",
-                "analysis": state.result,
+                "analysis": analysis,
             }
 
         return {"status": "idle"}
