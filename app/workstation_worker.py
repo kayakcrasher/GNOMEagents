@@ -2,7 +2,8 @@ import os
 
 import httpx
 
-from app.agent_tools import build_runtime
+from app.agent_planner import AgentPlanner
+from app.agent_memory import AgentMemory
 
 
 class WorkstationWorker:
@@ -61,12 +62,9 @@ class WorkstationWorker:
                     continue
                 raise
 
-            state = build_runtime().run(
-                objective="Analyze assigned lead",
-                plan=[{
-                    "tool": "lead.analyze",
-                    "args": {"message": message},
-                }],
+            state = AgentPlanner().execute(
+                "Analyze assigned lead",
+                {"message": message},
             )
 
             if state.status != "completed":
@@ -85,6 +83,24 @@ class WorkstationWorker:
                     }
                 },
             )
+
+            business_id = job.get("business_id")
+
+            if isinstance(business_id, int) and business_id > 0:
+                try:
+                    AgentMemory().remember(
+                        business_id=business_id,
+                        objective="Analyze assigned lead",
+                        status="completed",
+                        result={
+                            "job_id": job_id,
+                            "analysis": state.result,
+                        },
+                    )
+                except Exception:
+                    # The business job is already completed.
+                    # Memory failure must not trigger another execution.
+                    pass
 
             return {
                 "job_id": job_id,
