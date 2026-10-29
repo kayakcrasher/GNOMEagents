@@ -11,6 +11,14 @@ def make_worker(approval_status=201):
     completed = []
 
     def handler(request):
+        if (
+            request.method == "POST"
+            and request.url.path == "/api/agents/heartbeat"
+        ):
+            return httpx.Response(200, json={
+                "status": "online"
+            })
+
         path = request.url.path
         calls.append(path)
 

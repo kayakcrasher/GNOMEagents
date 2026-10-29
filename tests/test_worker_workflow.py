@@ -10,6 +10,14 @@ def make_worker(kind, message):
     calls = []
 
     def handler(request):
+        if (
+            request.method == "POST"
+            and request.url.path == "/api/agents/heartbeat"
+        ):
+            return httpx.Response(200, json={
+                "status": "online"
+            })
+
         calls.append(request.url.path)
 
         if request.method == "GET":

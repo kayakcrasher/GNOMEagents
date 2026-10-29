@@ -16,6 +16,14 @@ def test_worker_plans_and_remembers(tmp_path, monkeypatch):
     requests = []
 
     def handler(request):
+        if (
+            request.method == "POST"
+            and request.url.path == "/api/agents/heartbeat"
+        ):
+            return httpx.Response(200, json={
+                "status": "online"
+            })
+
         requests.append(
             (request.method, request.url.path)
         )
@@ -79,6 +87,14 @@ def test_no_memory_when_completion_fails(
     )
 
     def handler(request):
+        if (
+            request.method == "POST"
+            and request.url.path == "/api/agents/heartbeat"
+        ):
+            return httpx.Response(200, json={
+                "status": "online"
+            })
+
         if request.method == "GET":
             return httpx.Response(200, json={
                 "jobs": [{

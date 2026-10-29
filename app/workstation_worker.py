@@ -33,6 +33,10 @@ class WorkstationWorker:
             return response.json()
 
     def run_once(self):
+        self.request(
+            "POST", "/api/agents/heartbeat"
+        )
+
         data = self.request(
             "GET", "/api/workstation/jobs"
         )
