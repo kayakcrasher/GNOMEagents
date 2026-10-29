@@ -36,6 +36,12 @@ def test_codekeeper_approval(tmp_path):
     target = tmp_path / "app.py"
     target.write_text("VALUE = 1\n")
 
+    (tmp_path / "test_app.py").write_text(
+        "from app import VALUE\n"
+        "def test_value():\n"
+        "    assert VALUE == 42\n"
+    )
+
     agent = Codekeeper(
         tmp_path,
         tmp_path / "journal.db",
@@ -53,6 +59,7 @@ def test_codekeeper_approval(tmp_path):
     )
 
     assert completed["status"] == "completed"
+    assert completed["tests"]["passed"]
     assert target.read_text() == "VALUE = 42\n"
 
 

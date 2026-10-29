@@ -1,5 +1,6 @@
 """Codekeeper: persistent, review-first coding tasks."""
 
+from app.tools.devops import DevOpsTools
 from app.tools.engine import AgentEngine
 from app.tools.journal import AgentJournal
 from app.tools.patches import PatchManager
@@ -80,12 +81,11 @@ class Codekeeper:
             raise
 
     def approve(self, task_id, proposal_id):
+        """Apply an approved patch and verify the result."""
         task = self.journal.get_task(task_id)
 
         if task["status"] != "awaiting_approval":
-            raise ToolError(
-                "Task is not awaiting approval"
-            )
+            raise ToolError("Task is not awaiting approval")
 
         proposals = [
             event["payload"]["proposal_id"]
@@ -109,15 +109,68 @@ class Codekeeper:
             result,
         )
 
-        self.journal.transition(
-            task_id, "running"
-        )
-        self.journal.transition(
-            task_id, "completed"
-        )
+        self.journal.transition(task_id, "running")
 
-        return {
-            "task_id": task_id,
-            "status": "completed",
-            "patch": result,
-        }
+        tools = DevOpsTools(self.registry.root)
+
+        try:
+            tests = tools.run_tests()
+
+            self.journal.record(
+                task_id,
+                "verification.tests",
+                tests,
+            )
+
+            if not tests["passed"]:
+                self.journal.transition(
+                    task_id, "failed"
+                )
+                return {
+                    "task_id": task_id,
+                    "status": "failed",
+                    "reason": "Tests did not pass",
+                    "tests": tests,
+                }
+
+            # Git inspection is informative. A non-Git
+            # workspace can still pass verification.
+            try:
+                git = {
+                    "status": tools.git_status(),
+                    "diff": tools.git_diff(),
+                }
+            except ToolError as error:
+                git = {
+                    "available": False,
+                    "reason": str(error),
+                }
+
+            self.journal.record(
+                task_id,
+                "verification.git",
+                git,
+            )
+
+            self.journal.transition(
+                task_id, "completed"
+            )
+
+            return {
+                "task_id": task_id,
+                "status": "completed",
+                "patch": result,
+                "tests": tests,
+                "git": git,
+            }
+
+        except Exception as error:
+            self.journal.record(
+                task_id,
+                "verification.error",
+                {"error": str(error)},
+            )
+            self.journal.transition(
+                task_id, "failed"
+            )
+            raise
