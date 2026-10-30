@@ -88,17 +88,29 @@ class ModelClient:
         self.timeout = timeout
 
     def decide(self, request):
+        coding = request.get("task") == "generate_code_patch"
+        token_budget = 1536 if coding else 256
+
         payload = {
             "model": self.model,
             "temperature": 0,
-            "max_tokens": 256,
+            "max_tokens": token_budget,
             "response_format": {
                 "type": "json_object"
             },
             "messages": [
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT,
+                    "content": (
+                        "You are a Python coding assistant. "
+                        "Return JSON only: "
+                        "{\"action\":\"finish\","
+                        "\"result\":{\"new_content\":"
+                        "\"COMPLETE updated Python source\"}}. "
+                        "Preserve unrelated functionality. "
+                        "Do not claim tests were run."
+                        if coding else SYSTEM_PROMPT
+                    ),
                 },
                 {
                     "role": "user",

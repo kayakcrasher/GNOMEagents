@@ -40,7 +40,15 @@ class AgentEngine:
         state = AgentState(objective=objective)
 
         for _ in range(self.max_steps):
-            decision = self.planner.next_action(state)
+            try:
+                decision = self.planner.next_action(state)
+            except (ToolError, OSError, ValueError) as error:
+                state.status = "failed"
+                state.result = {
+                    "error": str(error),
+                    "stage": "planning",
+                }
+                break
 
             if not isinstance(decision, dict):
                 state.status = "failed"
